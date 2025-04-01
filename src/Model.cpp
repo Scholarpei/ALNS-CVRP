@@ -98,6 +98,7 @@ void Model::print() const {
             << " | Location: (" << depot->x << ", " << depot->y << ")\n";
     }
 }
+
 // 距离贪婪算法求TSP初始解
 Solution Model::initialSolution(Model& model) {
     // 确保距离矩阵已计算
@@ -131,7 +132,6 @@ Solution Model::initialSolution(Model& model) {
     Solution init_sol(init_route, model);
     return init_sol;
 }
-
 
 
 Model Model::loadFromFile(const string& filename)
