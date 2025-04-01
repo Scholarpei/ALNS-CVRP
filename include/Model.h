@@ -19,8 +19,8 @@ public:
 
     Model(int vehicleCount, int capacity);
 
-    void computeDistances();                            // 算距离
-    void initialSolution();                             // 初始解
+    void computeDistances();// 算距离
+    Solution Model::initialSolution(Model& model);// 初始解
 
     static Model loadFromFile(const std::string& filename); // load data
 
