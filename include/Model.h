@@ -2,7 +2,7 @@
 #define MODEL_H
 
 #include "Node.h"
-//#include "Solution.h"
+#include "Solution.h"
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -21,7 +21,6 @@ public:
 
     void computeDistances();                            // 算距离
     void initialSolution();                             // 初始解
-    //double evaluateSolution(const Solution& sol) const; // evaluate solution
 
     static Model loadFromFile(const std::string& filename); // load data
 

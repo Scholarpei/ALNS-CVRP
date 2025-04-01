@@ -61,8 +61,8 @@ void ALNS::worstRemoval(Solution &sol)
 
             // 计算移除该节点的目标函数变化
             tempSol.routes[r].erase(tempSol.routes[r].begin() + i);
-            double newCost = model.evaluateSolution(tempSol);
-            double deltaF = sol.obj - newCost;
+            double newCost = tempSol.total_distance;// solution类中在解的初始化过程中就会计算一次初始的路径长
+            double deltaF = sol.total_distance - newCost;// 注：solution类中的目标变量现改名为total_distance（原obj）
 
             // 记录 (影响, 节点)
             deltaCosts.emplace_back(deltaF, node);
@@ -251,7 +251,7 @@ Solution ALNS::runALNS(
 
     Solution bestSolution = model.bestSolution;
     Solution currentSolution = bestSolution;
-    double bestCost = model.evaluateSolution(bestSolution);
+    double bestCost = bestSolution.total_distance;
 
     for (int iter = 0;; iter++)
     {
@@ -277,10 +277,10 @@ Solution ALNS::runALNS(
             // to be written
             // call repair operator
 
-            double newCost = model.evaluateSolution(newSolution);
+            double newCost = newSolution.total_distance;
 
             // 判断是否接受新解
-            if (newCost < currentSolution.obj)
+            if (newCost < currentSolution.total_distance)
             {
                 currentSolution = newSolution;
                 if (newCost < bestCost)
@@ -296,7 +296,7 @@ Solution ALNS::runALNS(
                     scores_repair[repairIdx] += r2;
                 }
             }
-            else if (newCost - currentSolution.obj < T)
+            else if (newCost - currentSolution.total_distance < T)
             {
                 currentSolution = newSolution;
                 scores_destroy[destroyIdx] += r3;

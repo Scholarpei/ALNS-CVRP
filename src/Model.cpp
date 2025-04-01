@@ -104,15 +104,6 @@ void Model::initialSolution()
     // to be written
 }
 
-//double Model::evaluateSolution(const Solution& sol) const
-//{
-//    double totalCost = 0.0;
-//
-//    // to be written
-//
-//    return totalCost;
-//}
-
 Model Model::loadFromFile(const string& filename)
 {
     std::ifstream file("../data/" + filename);
