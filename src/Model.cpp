@@ -99,10 +99,40 @@ void Model::print() const {
     }
 }
 
-void Model::initialSolution()
-{
-    // to be written
+// 距离贪婪算法求TSP初始解
+Solution Model::initialSolution(Model& model) {
+    // 确保距离矩阵已计算
+    if (distanceMatrix.empty()) {
+        computeDistances();
+    }
+    vector<int> init_route;
+    init_route.push_back(0);//起点为仓库
+    
+    int current = 0;// 定义现节点
+    int next = 0;// 定义下一个节点
+    vector<int> isvisit(nodes.size());
+    for(auto n : isvisit){
+        n = 0;// 初始化为未访问
+    }
+    isvisit[0] = 1;// 仓库设置已访问
+    for(int n = 1; n < nodes.size(); n++){
+        int min_dist = std::numeric_limits<int>::max();// 初始化cost
+        for(int d = 1; d < nodes.size(); d++){
+            if(!isvisit[d]){
+                if(distanceMatrix[current][d] < min_dist){
+                    min_dist = distanceMatrix[current][d];
+                    next = d;
+                }
+            }
+        }
+        init_route.push_back(next);// 推入距离最小的节点
+        current = next;// 更新current
+    }
+    init_route.push_back(0);// 结尾是仓库
+    Solution init_sol(init_route, model);
+    return init_sol;
 }
+
 
 Model Model::loadFromFile(const string& filename)
 {

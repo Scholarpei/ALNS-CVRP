@@ -43,6 +43,7 @@ void ALNS::randomRemoval(Solution &sol)
             route.erase(remove(route.begin(), route.end(), node), route.end());
         }
     }
+    sol.update(model);// 更新sol解路径和总长
 }
 
 // 从当前解中移除一定比例引起目标函数增幅较大的需求节点
@@ -61,13 +62,14 @@ void ALNS::worstRemoval(Solution &sol)
 
             // 计算移除该节点的目标函数变化
             tempSol.routes[r].erase(tempSol.routes[r].begin() + i);
+            tempSol.update(model);// 更新tempSol路径和总长
             double newCost = tempSol.total_distance;// solution类中在解的初始化过程中就会计算一次初始的路径长
             double deltaF = sol.total_distance - newCost;// 注：solution类中的目标变量现改名为total_distance（原obj）
 
             // 记录 (影响, 节点)
             deltaCosts.emplace_back(deltaF, node);
 
-            // 恢复原解
+            // 恢复原解，此时不需要更新路径和总长
             tempSol.routes[r].insert(tempSol.routes[r].begin() + i, node);
         }
     }
@@ -92,6 +94,7 @@ void ALNS::worstRemoval(Solution &sol)
             route.erase(remove(route.begin(), route.end(), node), route.end());
         }
     }
+    sol.update(model);// 更新sol路径和总长
 }
 
 // 基于距离移除
@@ -150,7 +153,43 @@ void ALNS::demandBasedRemoval(Solution &sol)
             route.erase(remove(route.begin(), route.end(), node), route.end());
         }
     }
+    sol.update(model);// 更新sol解路径和总长
 }
+
+// 随机插入修复
+void ALNS::randomInsert(Solution &sol)
+{
+    // 获取需要插入的节点
+    vector<int> nodes_to_insert;
+    for (int i = 1; i < model.nodes.size(); i++) // 从1开始，因为0是仓库节点
+    {
+        if (std::find(sol.nodes_seq.begin(), sol.nodes_seq.end(), i) == sol.nodes_seq.end()) // 如果当前解中没有该节点
+        {
+            nodes_to_insert.push_back(i);
+        }
+    }
+
+    // 遍历每个路径，随机插入节点
+    for (int node : nodes_to_insert)
+    {
+        // 随机选择一个插入位置（不能是仓库节点的位置）
+        uniform_int_distribution<int> pos_dist(1, sol.nodes_seq.size() - 1);
+        int pos = pos_dist(gen);
+
+        // 插入节点
+        sol.nodes_seq.insert(sol.nodes_seq.begin() + pos, node);
+    }
+
+    sol.update(model); // 更新解的路径和总长
+}
+
+// 优先执行最小代价的插入操作
+void min_cost_Repair(Solution &sol); 
+
+// 优先选择最优插入与次优插入代价差距大的节点进行插入操作
+void regret_Repair(Solution &sol); 
+
+
 
 // 选择算子 type = destroy or repair
 int ALNS::selectOperator(const std::vector<double> &weights)

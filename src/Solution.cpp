@@ -14,6 +14,13 @@ Solution::Solution(vector<int> nodes_seq, Model& model) : nodes_seq(nodes_seq){
     total_distance = evaluateSolution(model);// 初始化总路径长
 }
 
+void Solution::update(Model& model){    // 这个函数是用来更新路径划分和更新总路径值，每当修改了TSP路径，需要调用一次这个函数来更新
+    pair<int, vector<vector<int>>> split_result = splitRoutes(model);// 调用路径分割函数
+    num_vehicle = split_result.first;// 更新车辆数
+    routes = split_result.second;// 更新化路径
+    total_distance = evaluateSolution(model);// 更新总路径长
+}
+
 //路径分割
 pair<int, vector<vector<int>>> Solution::splitRoutes(Model& model){
     int num_vehicle = 0; // 所需车辆数
