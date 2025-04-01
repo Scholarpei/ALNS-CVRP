@@ -76,7 +76,7 @@ void ALNS::worstRemoval(Solution &sol)
     sort(deltaCosts.begin(), deltaCosts.end(), greater<>());
 
     // 选取随机 d（移除数量）
-    uniform_int_distribution<int> dist(model.worst_d_min, model.worst_d_max);
+    uniform_int_distribution<int> dist(worst_d_min, worst_d_max);
     int d = dist(gen);
 
     for (int i = 0; i < min(d, (int)deltaCosts.size()); i++)
