@@ -4,6 +4,7 @@
 #include <cmath>
 #include <limits>
 #include <unordered_set>
+#include "Model.h"
 
 using namespace std;
 
@@ -37,45 +38,42 @@ void ALNS::randomRemoval(Solution &sol)
     {
         int node = dist(gen);
         removedNodes.push_back(node);
-
-        for (auto &route : sol.routes)
-        {
-            route.erase(remove(route.begin(), route.end(), node), route.end());
-        }
+        sol.nodes_seq.erase(remove(sol.nodes_seq.begin(), sol.nodes_seq.end(), node), sol.nodes_seq.end());
     }
-    sol.update(model);// 更新sol解路径和总长
+    sol.update(model); // 更新sol解路径和总长
 }
 
 // 从当前解中移除一定比例引起目标函数增幅较大的需求节点
 void ALNS::worstRemoval(Solution &sol)
 {
     vector<pair<double, int>> deltaCosts;
-    Solution tempSol = sol; // 复制当前解
+    Solution tempSol = sol;
     removedNodes.clear();
 
     // 计算每个节点的影响
-    for (size_t r = 0; r < sol.routes.size(); r++)
+    for (const auto &route : sol.routes)
     {
-        for (size_t i = 1; i < sol.routes[r].size(); i++)
-        { // 避免移除起点（仓库）
-            int node = sol.routes[r][i];
+        for (size_t i = 1; i < route.size(); i++)
+        {
+            int node = route[i];
 
-            // 计算移除该节点的目标函数变化
-            tempSol.routes[r].erase(tempSol.routes[r].begin() + i);
-            tempSol.update(model);// 更新tempSol路径和总长
-            double newCost = tempSol.total_distance;// solution类中在解的初始化过程中就会计算一次初始的路径长
-            double deltaF = sol.total_distance - newCost;// 注：solution类中的目标变量现改名为total_distance（原obj）
+            auto it = find(tempSol.nodes_seq.begin(), tempSol.nodes_seq.end(), node);
+            if (it != tempSol.nodes_seq.end())
+            {
+                tempSol.nodes_seq.erase(it);
+                tempSol.update(model);
+                double newCost = tempSol.total_distance;
+                double deltaF = sol.total_distance - newCost;
 
-            // 记录 (影响, 节点)
-            deltaCosts.emplace_back(deltaF, node);
+                deltaCosts.emplace_back(deltaF, node);
 
-            // 恢复原解，此时不需要更新路径和总长
-            tempSol.routes[r].insert(tempSol.routes[r].begin() + i, node);
+                tempSol.nodes_seq.insert(it, node);
+            }
         }
     }
 
-    // 按照 Δf 由大到小排序（优先移除影响小的）
-    sort(deltaCosts.begin(), deltaCosts.end(), greater<>());
+    // 按照 Δf 由大到小排序（优先移除影响大的）
+    sort(deltaCosts.rbegin(), deltaCosts.rend());
 
     // 选取随机 d（移除数量）
     uniform_int_distribution<int> dist(worst_d_min, worst_d_max);
@@ -86,15 +84,16 @@ void ALNS::worstRemoval(Solution &sol)
         removedNodes.push_back(deltaCosts[i].second);
     }
 
-    // 从解中移除选中的节点
-    for (auto &route : sol.routes)
+    for (int node : removedNodes)
     {
-        for (int node : removedNodes)
+        auto it = find(sol.nodes_seq.begin(), sol.nodes_seq.end(), node);
+        if (it != sol.nodes_seq.end())
         {
-            route.erase(remove(route.begin(), route.end(), node), route.end());
+            sol.nodes_seq.erase(it);
         }
     }
-    sol.update(model);// 更新sol路径和总长
+
+    sol.update(model);
 }
 
 // 基于距离移除
@@ -135,29 +134,33 @@ void ALNS::demandBasedRemoval(Solution &sol)
 {
     removedNodes.clear();
     vector<pair<int, int>> demands;
+
     for (size_t i = 1; i < model.nodes.size(); i++)
     {
         demands.emplace_back(model.nodes[i].demand, i);
     }
-    sort(demands.begin(), demands.end(), greater<>());
+
+    sort(demands.rbegin(), demands.rend());
 
     for (int i = 0; i < min(3, (int)demands.size()); i++)
     {
         removedNodes.push_back(demands[i].second);
     }
 
-    for (auto &route : sol.routes)
+    for (int node : removedNodes)
     {
-        for (int node : removedNodes)
+        auto it = find(sol.nodes_seq.begin(), sol.nodes_seq.end(), node);
+        if (it != sol.nodes_seq.end())
         {
-            route.erase(remove(route.begin(), route.end(), node), route.end());
+            sol.nodes_seq.erase(it);
         }
     }
-    sol.update(model);// 更新sol解路径和总长
+
+    sol.update(model); // 重新计算 routes 和总长
 }
 
 // 随机插入修复
-void ALNS::randomInsert(Solution &sol, Model& model)
+void ALNS::randomInsert(Solution &sol, Model &model)
 {
     // 获取需要插入的节点
     vector<int> nodes_to_insert;
@@ -184,7 +187,8 @@ void ALNS::randomInsert(Solution &sol, Model& model)
 }
 
 // 优先执行最小代价的插入操作
-void min_cost_Repair(Solution &sol, Model& model){
+void min_cost_Repair(Solution &sol, Model &model)
+{
     // 获取需要插入的节点
     vector<int> nodes_to_insert;
     for (int i = 1; i < model.nodes.size(); i++) // 从1开始，因为0是仓库节点
@@ -194,36 +198,34 @@ void min_cost_Repair(Solution &sol, Model& model){
             nodes_to_insert.push_back(i);
         }
     }
-    Solution tempSol = sol; // 复制当前解
-    vector<vector<double>> node_cost_record; // node_cost_record 记录的是 vector【需要插入的节点】【最优的插入位置】= 插入节点后cost增加值
-    double min_cost =  std::numeric_limits<int>::max(); // 创建最小代价的记录
+    Solution tempSol = sol;                            // 复制当前解
+    vector<vector<double>> node_cost_record;           // node_cost_record 记录的是 vector【需要插入的节点】【最优的插入位置】= 插入节点后cost增加值
+    double min_cost = std::numeric_limits<int>::max(); // 创建最小代价的记录
     // 计算每个节点的最优插入位置
     for (size_t r = 0; r < nodes_to_insert.size(); r++) // r记录
     {
-        min_cost =  std::numeric_limits<int>::max(); // 初始化最小代价的记录
-        for (size_t i = 0; i < sol.nodes_seq.size() - 1; i++)// 这里i从0开始是用于记录node_cost_record
+        min_cost = std::numeric_limits<int>::max();           // 初始化最小代价的记录
+        for (size_t i = 0; i < sol.nodes_seq.size() - 1; i++) // 这里i从0开始是用于记录node_cost_record
         {
             // 计算插入该节点的目标函数变化
             tempSol.nodes_seq.insert(tempSol.nodes_seq.begin() + i, nodes_to_insert[r]);
-            tempSol.update(model);// 更新tempSol路径和总长
-            double newCost = tempSol.total_distance;// solution类中在解的初始化过程中就会计算一次初始的路径长
-            double deltaF = newCost - sol.total_distance;// 注：solution类中的目标变量现改名为total_distance（原obj）
-            if (deltaF < min_cost){
+            tempSol.update(model);                        // 更新tempSol路径和总长
+            double newCost = tempSol.total_distance;      // solution类中在解的初始化过程中就会计算一次初始的路径长
+            double deltaF = newCost - sol.total_distance; // 注：solution类中的目标变量现改名为total_distance（原obj）
+            if (deltaF < min_cost)
+            {
                 min_cost = deltaF;
                 node_cost_record[r][i] = deltaF;
             }
             // 恢复原解，此时不需要更新路径和总长
-            tempSol = sol;// 恢复原解
+            tempSol = sol; // 恢复原解
         }
     }
     // 按照插入节点后cost增加值进行从小到大排序
-    
 }
 
 // 优先选择最优插入与次优插入代价差距大的节点进行插入操作
-void regret_Repair(Solution &sol, Model& model); 
-
-
+void regret_Repair(Solution &sol, Model &model);
 
 // 选择算子 type = destroy or repair
 int ALNS::selectOperator(const std::vector<double> &weights)
@@ -301,6 +303,7 @@ void ALNS::adaptiveWeightUpdate()
 //     :param pu: the frequency of weight adjustment
 //     :param v_cap: Vehicle capacity
 Solution ALNS::runALNS(
+    Model::Logger logger,
     double rand_d_min,
     double rand_d_max,
     double worst_d_min,
@@ -383,6 +386,7 @@ Solution ALNS::runALNS(
             // history_best_obj.push_back(bestCost);
         }
         adaptiveWeightUpdate();
+        logger.logSolution(bestSolution, bestCost);
 
         printf("iter: %d bestCost: %d\n", iter, bestCost);
     }
