@@ -183,45 +183,158 @@ void ALNS::randomInsert(Solution &sol, Model& model)
     sol.update(model); // 更新解的路径和总长
 }
 
-// 优先执行最小代价的插入操作
-void min_cost_Repair(Solution &sol, Model& model){
+// 最小cost贪婪修复算子
+void min_cost_Repair(Solution &sol, Model &model) {
     // 获取需要插入的节点
     vector<int> nodes_to_insert;
-    for (int i = 1; i < model.nodes.size(); i++) // 从1开始，因为0是仓库节点
-    {
-        if (std::find(sol.nodes_seq.begin(), sol.nodes_seq.end(), i) == sol.nodes_seq.end()) // 如果当前解中没有该节点
-        {
+    for (int i = 1; i < model.nodes.size(); i++) { // 从1开始，因为0是仓库节点
+        if (std::find(sol.nodes_seq.begin(), sol.nodes_seq.end(), i) == sol.nodes_seq.end()) { // 如果当前解中没有该节点
             nodes_to_insert.push_back(i);
         }
     }
-    Solution tempSol = sol; // 复制当前解
-    vector<vector<double>> node_cost_record; // node_cost_record 记录的是 vector【需要插入的节点】【最优的插入位置】= 插入节点后cost增加值
-    double min_cost =  std::numeric_limits<int>::max(); // 创建最小代价的记录
-    // 计算每个节点的最优插入位置
-    for (size_t r = 0; r < nodes_to_insert.size(); r++) // r记录
-    {
-        min_cost =  std::numeric_limits<int>::max(); // 初始化最小代价的记录
-        for (size_t i = 0; i < sol.nodes_seq.size() - 1; i++)// 这里i从0开始是用于记录node_cost_record
-        {
-            // 计算插入该节点的目标函数变化
-            tempSol.nodes_seq.insert(tempSol.nodes_seq.begin() + i, nodes_to_insert[r]);
-            tempSol.update(model);// 更新tempSol路径和总长
-            double newCost = tempSol.total_distance;// solution类中在解的初始化过程中就会计算一次初始的路径长
-            double deltaF = newCost - sol.total_distance;// 注：solution类中的目标变量现改名为total_distance（原obj）
-            if (deltaF < min_cost){
-                min_cost = deltaF;
-                node_cost_record[r][i] = deltaF;
-            }
-            // 恢复原解，此时不需要更新路径和总长
-            tempSol = sol;// 恢复原解
-        }
-    }
-    // 按照插入节点后cost增加值进行从小到大排序
+
+    // 初始化记录插入代价的二维向量
+    vector<vector<double>> node_cost_record(nodes_to_insert.size(), vector<double>(sol.nodes_seq.size(), std::numeric_limits<double>::max()));
     
+    // 每次选择最优的插入操作，直到全部插入
+    while (!nodes_to_insert.empty()){
+
+        // 复原矩阵，更新矩阵大小（每次循环中由于nodes_to_insert和nodes_seq元素个数不同，矩阵大小不同）
+        node_cost_record.resize(nodes_to_insert.size(), vector<double>(sol.nodes_seq.size(), std::numeric_limits<double>::max()));
+
+        for (size_t node_idx = 0; node_idx < nodes_to_insert.size(); node_idx++) {
+            Solution tempSol = sol; // 深拷贝当前解
+            for (size_t insert_pos = 1; insert_pos < sol.nodes_seq.size(); insert_pos++) { // 插入位置应为 【1 - sol.nodes_seq.size() - 1】，不能插入到两侧
+                // 计算插入该节点的目标函数变化
+                tempSol.nodes_seq.insert(tempSol.nodes_seq.begin() + insert_pos, nodes_to_insert[node_idx]);
+                tempSol.update(model); // 更新tempSol路径和总长
+                double newCost = tempSol.total_distance; // 获取新的总代价
+                double deltaF = newCost - sol.total_distance; // 计算代价变化
+
+                // 更新记录
+                if (deltaF < node_cost_record[node_idx][insert_pos]) {
+                    node_cost_record[node_idx][insert_pos] = deltaF;
+                }
+
+                // 恢复原解
+                tempSol = sol; // 深拷贝恢复
+            }
+        }
+    
+        // 按照插入节点后cost增加值找到最小的项
+        double min_cost = std::numeric_limits<double>::max();
+        int min_node_idx = -1;
+        int min_insert_pos = -1;
+        for (size_t node_idx = 0; node_idx < nodes_to_insert.size(); node_idx++) {
+            for (size_t insert_pos = 1; insert_pos < sol.nodes_seq.size(); insert_pos++) { // 插入位置应为 【1 - sol.nodes_seq.size() - 1】，不能插入到两侧
+                if (node_cost_record[node_idx][insert_pos] < min_cost) {
+                    min_cost = node_cost_record[node_idx][insert_pos];
+                    min_node_idx = node_idx;
+                    min_insert_pos = insert_pos;
+                }
+            }
+        }
+
+        // 如果找到了最小代价增加的节点，进行插入操作
+        if (min_node_idx != -1) {
+            int min_cost_node = nodes_to_insert[min_node_idx];
+            sol.nodes_seq.insert(sol.nodes_seq.begin() + min_insert_pos, min_cost_node);// 插入位置应为 【1 - sol.nodes_seq.size() - 1】，不能插入到两侧
+            sol.update(model); // 更新sol路径和总长
+            nodes_to_insert.erase(nodes_to_insert.begin() + min_node_idx); // 移除已插入的节点
+        }     
+    }
 }
 
-// 优先选择最优插入与次优插入代价差距大的节点进行插入操作
-void regret_Repair(Solution &sol, Model& model); 
+// 遗憾修复算子
+void regret_Repair(Solution &sol, Model &model) {
+    // 获取需要插入的节点
+    vector<int> nodes_to_insert;
+    for (int i = 1; i < model.nodes.size(); i++) { // 从1开始，因为0是仓库节点
+        if (std::find(sol.nodes_seq.begin(), sol.nodes_seq.end(), i) == sol.nodes_seq.end()) { // 如果当前解中没有该节点
+            nodes_to_insert.push_back(i);
+        }
+    }
+
+    // 每次选择最优的插入操作，直到全部插入
+    while (!nodes_to_insert.empty()) {
+        // 初始化记录插入代价的二维向量
+        vector<vector<double>> node_cost_record(nodes_to_insert.size(), vector<double>(sol.nodes_seq.size(), std::numeric_limits<double>::max()));
+
+        // 计算每个节点的插入代价
+        for (size_t node_idx = 0; node_idx < nodes_to_insert.size(); node_idx++) {
+            Solution tempSol = sol; // 深拷贝当前解
+            for (size_t insert_pos = 1; insert_pos < sol.nodes_seq.size(); insert_pos++) { // 插入位置应为 [1, sol.nodes_seq.size() - 1]
+                // 计算插入该节点的目标函数变化
+                tempSol.nodes_seq.insert(tempSol.nodes_seq.begin() + insert_pos, nodes_to_insert[node_idx]);
+                tempSol.update(model); // 更新tempSol路径和总长
+                double newCost = tempSol.total_distance; // 获取新的总代价
+                double deltaF = newCost - sol.total_distance; // 计算代价变化
+
+                // 更新记录
+                if (deltaF < node_cost_record[node_idx][insert_pos]) {
+                    node_cost_record[node_idx][insert_pos] = deltaF;
+                }
+
+                // 恢复原解
+                tempSol = sol; // 深拷贝恢复
+            }
+        }
+
+        // 找到每个节点的最优和次优插入位置
+        struct NodeInsertInfo {
+            int node_idx;
+            int best_insert_pos;
+            vector<double> top_costs; // 存储最优、次优、第三优、第四优的代价
+        };
+
+        vector<NodeInsertInfo> node_insert_info(nodes_to_insert.size());
+
+        for (size_t node_idx = 0; node_idx < nodes_to_insert.size(); node_idx++) {
+            vector<pair<double, int>> costs;
+            for (size_t insert_pos = 1; insert_pos < sol.nodes_seq.size(); insert_pos++) {
+                costs.push_back({node_cost_record[node_idx][insert_pos], insert_pos});
+            } // cost值，要插入的位置
+
+            // 按代价排序
+            sort(costs.begin(), costs.end());
+
+            // 获取最优、次优、第三优、第四优的代价
+            node_insert_info[node_idx].node_idx = node_idx;
+            node_insert_info[node_idx].best_insert_pos = costs[0].second;
+            node_insert_info[node_idx].top_costs.resize(4, std::numeric_limits<double>::max());
+            for (size_t i = 0; i < std::min(static_cast<size_t>(4), costs.size()); i++) {
+                node_insert_info[node_idx].top_costs[i] = costs[i].first;
+            }
+        }
+
+        // 找到最优插入位置与次优、第三优、第四优代价差距之和最大的节点
+        int best_node_idx = -1;
+        double max_regret = -std::numeric_limits<double>::max();
+
+        for (const auto& info : node_insert_info) {
+            double regret = 0;
+            for (size_t i = 1; i < info.top_costs.size(); i++) {
+                if (info.top_costs[i] != std::numeric_limits<double>::max()) {
+                    regret += info.top_costs[i] - info.top_costs[0]; // 累加差距
+                }
+            }
+            if (regret > max_regret) {
+                max_regret = regret;
+                best_node_idx = info.node_idx;
+            }
+        }
+
+        // 如果找到了最优节点，进行插入操作
+        if (best_node_idx != -1) {
+            int best_node = nodes_to_insert[best_node_idx];
+            int best_insert_pos = node_insert_info[best_node_idx].best_insert_pos;
+
+            sol.nodes_seq.insert(sol.nodes_seq.begin() + best_insert_pos, best_node);
+            sol.update(model); // 更新sol路径和总长
+            nodes_to_insert.erase(nodes_to_insert.begin() + best_node_idx); // 移除已插入的节点
+        }
+    }
+}
 
 
 
