@@ -18,7 +18,7 @@ int main()
     Model model = Model::loadFromFile("data/..?..");
     ALNS alns(model);
 
-    Solution bestSolution = alns.runALNS();
+    Solution bestSolution = alns.runALNS(model.logger);
 
     return 0;
 }

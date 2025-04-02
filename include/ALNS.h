@@ -49,13 +49,14 @@ public:
     void proximityRemoval(Solution &sol); //
 
     // repair strategy:
-    void randomInsert(Solution &sol, Model& model); // 随机插入修复
-    void min_cost_Repair(Solution &sol, Model& model); // 优先执行最小代价的插入操作
-    void regret_Repair(Solution &sol, Model& model); // 优先选择最优插入与次优插入代价差距大的节点进行插入操作
+    void randomInsert(Solution &sol, Model &model);    // 随机插入修复
+    void min_cost_Repair(Solution &sol, Model &model); // 优先执行最小代价的插入操作
+    void regret_Repair(Solution &sol, Model &model);   // 优先选择最优插入与次优插入代价差距大的节点进行插入操作
 
     void resetScore();           // 重置算子得分
     void adaptiveWeightUpdate(); // update weights of destroy and repair
     Solution runALNS(
+        Model::Logger logger,
         double rand_d_min,
         double rand_d_max,
         double worst_d_min,
