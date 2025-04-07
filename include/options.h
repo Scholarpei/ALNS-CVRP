@@ -1,0 +1,11 @@
+extern const int SEED = 42;
+extern const double rho = 0.9;
+extern const double R1 = 20;
+extern const double R2 = 5;
+extern const double R3 = 1;
+extern const double RAND_D_MAX = 0.1;
+extern const double RAND_D_MIN = 0;
+extern const double WORST_D_MIN = 0;
+extern const double WORST_D_MAX = 0.2;
+extern const int REGRET_N = 2;
+extern const double PHI = 0.99;

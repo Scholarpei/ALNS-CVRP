@@ -4,6 +4,8 @@
 #include <cmath>
 #include <limits>
 #include <unordered_set>
+#include <sstream>
+#include <string>
 
 using namespace std;
 
@@ -157,7 +159,7 @@ void ALNS::demandBasedRemoval(Solution &sol)
 }
 
 // 随机插入修复
-void ALNS::randomInsert(Solution &sol, Model& model)
+void ALNS::randomRepair(Solution &sol, Model& model)
 {
     // 获取需要插入的节点
     vector<int> nodes_to_insert;
@@ -413,6 +415,39 @@ void ALNS::adaptiveWeightUpdate()
 //     :param epochs: Iterations
 //     :param pu: the frequency of weight adjustment
 //     :param v_cap: Vehicle capacity
+
+std::unordered_set<std::vector<int>, VectorHash, VectorEqual> solutionSet;
+int fes = 0;  // 记录已生成的解数
+
+// 自定义哈希函数
+struct VectorHash {
+    size_t operator()(const std::vector<int>& path) const {
+        size_t hash = 0;
+        for (int node : path) {
+            hash ^= std::hash<int>()(node) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+        }
+        return hash;
+    }
+};
+
+// 自定义比较函数
+struct VectorEqual {
+    bool operator()(const std::vector<int>& a, const std::vector<int>& b) const {
+        return a == b;
+    }
+};
+
+// 检查并添加新解
+void checkAndAddSolution(std::unordered_set<std::vector<int>, VectorHash, VectorEqual>& solutionSet, const std::vector<int>& path, int& fes) {
+    auto it = solutionSet.find(path);
+    if (it == solutionSet.end()) {  // 如果集合中没有这个解
+        solutionSet.insert(path);  // 将新解加入集合
+        fes++;  // 增加已生成的解数
+    }
+}
+
+    
+
 Solution ALNS::runALNS(
     double rand_d_min,
     double rand_d_max,
@@ -435,11 +470,11 @@ Solution ALNS::runALNS(
     this->r3 = r3;
     this->rho = rho;
 
-    Solution bestSolution = model.bestSolution;
+    Solution bestSolution = model.initialSolution(model);
     Solution currentSolution = bestSolution;
     double bestCost = bestSolution.total_distance;
 
-    for (int iter = 0;; iter++)
+    for (int iter = 0; fes <= 50000; iter++)
     {
         Solution newSolution = currentSolution;
         double T = bestCost * 0.2;
@@ -460,11 +495,18 @@ Solution ALNS::runALNS(
             else if (destroyIdx == 2)
                 demandBasedRemoval(newSolution);
 
-            // to be written
-            // call repair operator
+            if (repairIdx == 0)
+                randomRepair(newSolution, model);
+            else if (repairIdx == 1)
+                min_cost_Repair(newSolution, model);
+            else if (repairIdx == 2)
+                regret_Repair(newSolution, model);
 
             double newCost = newSolution.total_distance;
 
+            // 将新解与map中的解比较，更新fes
+            checkAndAddSolution(solutionSet, newSolution.nodes_seq, fes);
+            
             // 判断是否接受新解
             if (newCost < currentSolution.total_distance)
             {

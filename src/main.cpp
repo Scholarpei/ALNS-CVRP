@@ -5,6 +5,7 @@ const static int MAXFEs = 5e4;
 
 #include "../include/Model.h"
 #include "../include/ALNS.h"
+#include "../include/options.h"
 
 void test_for_loading_model()
 {
@@ -15,10 +16,20 @@ void test_for_loading_model()
 
 int main()
 {
-    Model model = Model::loadFromFile("data/..?..");
+    Model model = Model::loadFromFile("data/A-n32-k5.vrp");
     ALNS alns(model);
 
-    Solution bestSolution = alns.runALNS();
+    Solution bestSolution = alns.runALNS(
+        model.logger,
+        RAND_D_MIN,
+        RAND_D_MAX,
+        WORST_D_MIN,
+        WORST_D_MAX,
+        REGRET_N,
+        R1,
+        R2,
+        R3,
+        PHI);
 
     return 0;
 }

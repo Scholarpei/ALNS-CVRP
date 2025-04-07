@@ -49,7 +49,7 @@ public:
     void proximityRemoval(Solution &sol); //
 
     // repair strategy:
-    void randomInsert(Solution &sol, Model& model); // 随机插入修复
+    void randomRepair(Solution &sol, Model& model); // 随机插入修复
     void min_cost_Repair(Solution &sol, Model& model); // 优先执行最小代价的插入操作
     void regret_Repair(Solution &sol, Model& model); // 优先选择最优插入与次优插入代价差距大的节点进行插入操作
 
