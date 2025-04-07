@@ -11,7 +11,7 @@ class ALNS
 private:
     Model &model;
     const int MAXFEs = 5e4;
-    int pu;             // 每iter执行pu次优化
+    int pu = 3;         // 每iter执行pu次优化
     double rand_d_max;  // 随机破坏程度上限
     double rand_d_min;  // 随机破坏程度下限
     double worst_d_max; // 最坏破坏程度上限
@@ -49,9 +49,9 @@ public:
     void proximityRemoval(Solution &sol); //
 
     // repair strategy:
-    void randomRepair(Solution &sol, Model& model); // 随机插入修复
-    void min_cost_Repair(Solution &sol, Model& model); // 优先执行最小代价的插入操作
-    void regret_Repair(Solution &sol, Model& model); // 优先选择最优插入与次优插入代价差距大的节点进行插入操作
+    void randomRepair(Solution &sol, Model &model);    // 随机插入修复
+    void min_cost_Repair(Solution &sol, Model &model); // 优先执行最小代价的插入操作
+    void regret_Repair(Solution &sol, Model &model);   // 优先选择最优插入与次优插入代价差距大的节点进行插入操作
 
     void resetScore();           // 重置算子得分
     void adaptiveWeightUpdate(); // update weights of destroy and repair

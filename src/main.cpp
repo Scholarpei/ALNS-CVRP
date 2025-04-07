@@ -16,7 +16,7 @@ void test_for_loading_model()
 
 int main()
 {
-    Model model = Model::loadFromFile("data/A-n32-k5.vrp");
+    Model model = Model::loadFromFile("../data/A-n32-k5.vrp");
     ALNS alns(model);
 
     Solution bestSolution = alns.runALNS(
@@ -30,6 +30,8 @@ int main()
         R2,
         R3,
         PHI);
+
+    printf("Finish Test!\n");
 
     return 0;
 }

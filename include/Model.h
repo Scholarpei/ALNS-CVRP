@@ -2,10 +2,13 @@
 #define MODEL_H
 
 #include "Node.h"
-#include "Solution.h"
 #include <vector>
 #include <unordered_map>
+#include <memory>
+// #include "Solution.h"
 #include <string>
+
+class Solution;
 
 class Model
 {
@@ -16,7 +19,7 @@ public:
         // 接收solution和总距离
         void logSolution(const Solution &sol, double totalDistance);
         // 将记录的解保存到文件
-        void saveToFile(const std::string &filename = "CVRP结果记录");
+        void saveToFile(const std::string &filename);
 
     private:
         std::vector<std::pair<Solution, double>> solutions;
@@ -28,12 +31,10 @@ public:
     std::vector<Node> nodes; // 节点(客户)
     std::unordered_map<int, std::unordered_map<int, double>> distanceMatrix;
 
-    Solution bestSolution;
-
     Model(int vehicleCount, int capacity);
 
-    void computeDistances();                       // 算距离
-    Solution Model::initialSolution(Model &model); // 初始解
+    void computeDistances();                // 算距离
+    Solution initialSolution(Model &model); // 初始解
 
     static Model loadFromFile(const std::string &filename); // load data
 

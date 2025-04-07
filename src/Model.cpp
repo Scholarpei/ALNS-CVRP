@@ -1,5 +1,6 @@
 // CVRP 模型
 #include "Model.h"
+#include "Solution.h"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -43,7 +44,9 @@ void Model::Logger::saveToFile(const std::string &filename = "result")
 }
 
 Model::Model(int vehicleCount, int capacity)
-    : vehicleCount(vehicleCount), capacity(capacity), bestSolution(initialSolution(*this)), logger() {}
+    : vehicleCount(vehicleCount), capacity(capacity), logger()
+{
+}
 
 void Model::computeDistances()
 {
@@ -177,9 +180,16 @@ Solution Model::initialSolution(Model &model)
             }
         }
         init_route.push_back(next); // 推入距离最小的节点
-        current = next;             // 更新current
+        isvisit[next] = true;
+        current = next; // 更新current
     }
     init_route.push_back(0); // 结尾是仓库
+
+    // for (auto n : init_route)
+    // {
+    //     printf("%d ", n);
+    // }
+
     Solution init_sol(init_route, model);
     return init_sol;
 }
@@ -327,9 +337,9 @@ Model Model::loadFromFile(const string &filename)
     {
         throw std::runtime_error("仓库节点需求不为零");
     }
-
-    Model model(vehicleCount, capacity);
+    Model model = Model(vehicleCount, capacity);
     model.nodes = nodes;
+    // model.bestSolution = std::make_shared<Solution>(model.initialSolution(model));
     model.computeDistances();
 
     return model;

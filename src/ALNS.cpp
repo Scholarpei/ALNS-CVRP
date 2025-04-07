@@ -189,7 +189,7 @@ void ALNS::randomRepair(Solution &sol, Model &model)
 }
 
 // 最小cost贪婪修复算子
-void min_cost_Repair(Solution &sol, Model &model)
+void ALNS::min_cost_Repair(Solution &sol, Model &model)
 {
     // 获取需要插入的节点
     vector<int> nodes_to_insert;
@@ -262,7 +262,7 @@ void min_cost_Repair(Solution &sol, Model &model)
 }
 
 // 遗憾修复算子
-void regret_Repair(Solution &sol, Model &model)
+void ALNS::regret_Repair(Solution &sol, Model &model)
 {
     // 获取需要插入的节点
     vector<int> nodes_to_insert;
@@ -371,8 +371,6 @@ void regret_Repair(Solution &sol, Model &model)
 // 选择算子 type = destroy or repair
 int ALNS::selectOperator(const std::vector<double> &weights)
 {
-    std::random_device rd;
-    std::mt19937 gen(rd());
     std::discrete_distribution<int> dist(weights.begin(), weights.end());
     return dist(gen);
 }
@@ -444,9 +442,6 @@ void ALNS::adaptiveWeightUpdate()
 //     :param pu: the frequency of weight adjustment
 //     :param v_cap: Vehicle capacity
 
-std::unordered_set<std::vector<int>, VectorHash, VectorEqual> solutionSet;
-int fes = 0; // 记录已生成的解数
-
 // 自定义哈希函数
 struct VectorHash
 {
@@ -470,6 +465,9 @@ struct VectorEqual
     }
 };
 
+std::unordered_set<std::vector<int>, VectorHash, VectorEqual> solutionSet;
+int fes = 0; // 记录已生成的解数
+
 // 检查并添加新解
 void checkAndAddSolution(std::unordered_set<std::vector<int>, VectorHash, VectorEqual> &solutionSet, const std::vector<int> &path, int &fes)
 {
@@ -492,7 +490,7 @@ Solution ALNS::runALNS(
     double r2,
     double r3,
     double phi,
-    double rho = 0.9)
+    double rho)
 {
     this->rand_d_min = rand_d_min;
     this->rand_d_max = rand_d_max;
@@ -505,8 +503,13 @@ Solution ALNS::runALNS(
     this->rho = rho;
 
     Solution bestSolution = model.initialSolution(model);
+    model.print();
+    bestSolution.printSolutionINFO();
+
     Solution currentSolution = bestSolution;
     double bestCost = bestSolution.total_distance;
+
+    printf("bestCost init:%lf\n", bestCost);
 
     for (int iter = 0; fes <= 50000; iter++)
     {
@@ -521,6 +524,8 @@ Solution ALNS::runALNS(
             int repairIdx = selectOperator(weights_repair);
             select_destroy[destroyIdx]++;
             select_repair[repairIdx]++;
+
+            // printf("destory: %d repair %d \n", destroyIdx, repairIdx);
 
             if (destroyIdx == 0)
                 randomRemoval(newSolution);
@@ -538,6 +543,7 @@ Solution ALNS::runALNS(
 
             double newCost = newSolution.total_distance;
 
+            // printf("newCost : %lf\n", newCost);
             // 将新解与map中的解比较，更新fes
             checkAndAddSolution(solutionSet, newSolution.nodes_seq, fes);
 
@@ -547,6 +553,7 @@ Solution ALNS::runALNS(
                 currentSolution = newSolution;
                 if (newCost < bestCost)
                 {
+                    printf("update Solution!\n");
                     bestSolution = newSolution;
                     bestCost = newCost;
                     scores_destroy[destroyIdx] += r1;
@@ -574,7 +581,7 @@ Solution ALNS::runALNS(
         adaptiveWeightUpdate();
         logger.logSolution(bestSolution, bestCost);
 
-        printf("iter: %d bestCost: %d\n", iter, bestCost);
+        printf("iter: %d bestCost: %lf\n", iter, bestCost);
     }
 
     printf("random destroy weight: %.3f\tselected: %d\tscore: %.3f\n",
