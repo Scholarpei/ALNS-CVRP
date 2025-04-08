@@ -445,43 +445,6 @@ void ALNS::adaptiveWeightUpdate()
 //     :param pu: the frequency of weight adjustment
 //     :param v_cap: Vehicle capacity
 
-// 自定义哈希函数
-struct VectorHash
-{
-    size_t operator()(const std::vector<int> &path) const
-    {
-        size_t hash = 0;
-        for (int node : path)
-        {
-            hash ^= std::hash<int>()(node) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
-        }
-        return hash;
-    }
-};
-
-// 自定义比较函数
-struct VectorEqual
-{
-    bool operator()(const std::vector<int> &a, const std::vector<int> &b) const
-    {
-        return a == b;
-    }
-};
-
-std::unordered_set<std::vector<int>, VectorHash, VectorEqual> solutionSet;
-int fes = 0; // 记录已生成的解数
-
-// 检查并添加新解
-void checkAndAddSolution(std::unordered_set<std::vector<int>, VectorHash, VectorEqual> &solutionSet, const std::vector<int> &path, int &fes)
-{
-    auto it = solutionSet.find(path);
-    if (it == solutionSet.end())
-    {                             // 如果集合中没有这个解
-        solutionSet.insert(path); // 将新解加入集合
-        fes++;                    // 增加已生成的解数
-    }
-}
-
 Solution ALNS::runALNS(
     Model::Logger logger,
     double rand_d_min,
@@ -506,6 +469,7 @@ Solution ALNS::runALNS(
     this->rho = rho;
 
     Solution bestSolution = model.initialSolution(model);
+    // Solution bestSolution = model.initialRandomSolution(model);
     model.print();
     // bestSolution.printSolutionINFO();
 
@@ -514,7 +478,7 @@ Solution ALNS::runALNS(
 
     printf("bestCost init:%lf\n", bestCost);
 
-    for (int iter = 0; fes <= 50000; iter++)
+    for (int iter = 0; model.fes <= 50000; iter++)
     {
         Solution newSolution = currentSolution;
         double T = bestCost * 0.2;
@@ -548,7 +512,7 @@ Solution ALNS::runALNS(
 
             // printf("newCost : %lf\n", newCost);
             // 将新解与map中的解比较，更新fes
-            checkAndAddSolution(solutionSet, newSolution.nodes_seq, fes);
+            // checkAndAddSolution(model.solutionSet, newSolution.nodes_seq, model.fes);
 
             // 判断是否接受新解
             if (newCost < currentSolution.total_distance)
@@ -574,6 +538,7 @@ Solution ALNS::runALNS(
                 scores_destroy[destroyIdx] += r3;
                 scores_repair[repairIdx] += r3;
             }
+            printf("newCost :%lf\n", newCost);
 
             // 退火
             T *= phi;
@@ -584,19 +549,22 @@ Solution ALNS::runALNS(
         adaptiveWeightUpdate();
         logger.logSolution(bestSolution, bestCost);
 
-        printf("iter: %d bestCost: %lf\n", iter, bestCost);
+        printf("iter: %d bestCost: %lf fes: %d \n", iter, bestCost, model.fes);
     }
 
-    printf("random destroy weight: %.3f\tselected: %d\tscore: %.3f\n",
-           weights_destroy[0], history_select_destroy[0], history_scores_destroy[0]);
-    printf("worse destroy weight: %.3f\tselected: %d\tscore: %.3f\n",
-           weights_destroy[1], history_select_destroy[1], history_scores_destroy[1]);
-    printf("random repair weight: %.3f\tselected: %d\tscore: %.3f\n",
-           weights_repair[0], history_select_repair[0], history_scores_repair[0]);
-    printf("greedy repair weight: %.3f\tselected: %d\tscore: %.3f\n",
-           weights_repair[1], history_select_repair[1], history_scores_repair[1]);
-    printf("regret repair weight: %.3f\tselected: %d\tscore: %.3f\n",
-           weights_repair[2], history_select_repair[2], history_scores_repair[2]);
+    printf("random destroy weight: %.3f\tselected: %d\tscore: %d\n",
+           weights_destroy[0], history_select_destroy[0], scores_destroy[0]);
+    printf("worse destroy weight: %.3f\tselected: %d\tscore: %d\n",
+           weights_destroy[1], history_select_destroy[1], scores_destroy[1]);
+    printf("Demand destroy weight: %.3f\tselected: %d\tscore: %d\n",
+           weights_destroy[2], history_select_destroy[2], scores_destroy[2]);
+
+    printf("random repair weight: %.3f\tselected: %d\tscore: %d\n",
+           weights_repair[0], history_select_repair[0], scores_repair[0]);
+    printf("greedy repair weight: %.3f\tselected: %d\tscore: %d\n",
+           weights_repair[1], history_select_repair[1], scores_repair[1]);
+    printf("regret repair weight: %.3f\tselected: %d\tscore: %d\n",
+           weights_repair[2], history_select_repair[2], scores_repair[2]);
 
     return bestSolution;
 }

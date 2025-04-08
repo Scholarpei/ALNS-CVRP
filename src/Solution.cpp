@@ -86,6 +86,12 @@ pair<int, vector<vector<int>>> Solution::splitRoutes(Model &model)
 // 计算总行驶距离
 double Solution::evaluateSolution(Model &model)
 {
+    auto it = model.solutionMap.find(nodes_seq);
+    if (it != model.solutionMap.end())
+    {
+        return it->second;
+    }
+
     total_distance = 0;
     for (const auto &route : routes)
     {
@@ -98,6 +104,10 @@ double Solution::evaluateSolution(Model &model)
         total_distance += route_distance; // 将路径距离计入解的总距离
     }
     // printf("total distance compute: %lf\n", total_distance);
+
+    model.solutionMap.insert({nodes_seq, total_distance});
+    model.fes++;
+
     return total_distance;
 }
 

@@ -9,6 +9,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
+#include <random>
 
 using namespace std;
 
@@ -144,6 +145,36 @@ void Model::print() const
         std::cout << "\n[Depot] ID: " << depot->id
                   << " | Location: (" << depot->x << ", " << depot->y << ")\n";
     }
+}
+
+Solution Model::initialRandomSolution(Model &model)
+{
+    // 确保距离矩阵已计算
+    if (distanceMatrix.empty())
+    {
+        computeDistances();
+    }
+
+    vector<int> init_route;
+    int num_nodes = nodes.size();
+
+    // 创建一个城市编号列表（除了仓库 0）
+    for (int i = 1; i < num_nodes; ++i)
+    {
+        init_route.push_back(i);
+    }
+
+    // 使用随机数引擎打乱节点顺序
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(init_route.begin(), init_route.end(), g);
+
+    // 加入起点（仓库）作为开始和结束
+    init_route.insert(init_route.begin(), 0);
+    init_route.push_back(0);
+
+    Solution rand_sol(init_route, model);
+    return rand_sol;
 }
 
 // 距离贪婪算法求TSP初始解

@@ -20,7 +20,6 @@ private:
     double r1;          // score if the new solution is the best one found so far.
     double r2;          // score if the new solution improves the current solution.
     double r3;          // score if the new solution does not improve the current solution, but is accepted.
-    int fes = 0;        // nums of FEs
     double rho;         // 算子权重衰减factor
 
     std::vector<double> weights_destroy;     // 摧毁算子权重
