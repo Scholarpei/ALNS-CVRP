@@ -468,18 +468,19 @@ Solution ALNS::runALNS(
     this->r3 = r3;
     this->rho = rho;
 
-    Solution bestSolution = model.initialSolution(model);
     // Solution bestSolution = model.initialRandomSolution(model);
-    model.print();
+    Solution bestSolution = model.initialSolution(model);
+    // model.print();
     // bestSolution.printSolutionINFO();
 
     Solution currentSolution = bestSolution;
     double bestCost = bestSolution.total_distance;
 
-    printf("bestCost init:%lf\n", bestCost);
-
     for (int iter = 0; model.fes <= 50000; iter++)
     {
+        if (iter > 2e5)
+            break;
+
         Solution newSolution = currentSolution;
         double T = bestCost * 0.2;
         resetScore();
@@ -520,7 +521,7 @@ Solution ALNS::runALNS(
                 currentSolution = newSolution;
                 if (newCost < bestCost)
                 {
-                    printf("update Solution!\n");
+                    // printf("update Solution!\n");
                     bestSolution = newSolution;
                     bestCost = newCost;
                     scores_destroy[destroyIdx] += r1;
@@ -538,7 +539,7 @@ Solution ALNS::runALNS(
                 scores_destroy[destroyIdx] += r3;
                 scores_repair[repairIdx] += r3;
             }
-            printf("newCost :%lf\n", newCost);
+            // printf("newCost :%lf\n", newCost);
 
             // 退火
             T *= phi;
@@ -549,22 +550,25 @@ Solution ALNS::runALNS(
         adaptiveWeightUpdate();
         logger.logSolution(bestSolution, bestCost);
 
-        printf("iter: %d bestCost: %lf fes: %d \n", iter, bestCost, model.fes);
+        // printf("iter: %d best
+        // printf("iter %d Cost: %lf fes: %d \n", iter, bestCost, model.fes);
     }
 
-    printf("random destroy weight: %.3f\tselected: %d\tscore: %d\n",
-           weights_destroy[0], history_select_destroy[0], scores_destroy[0]);
-    printf("worse destroy weight: %.3f\tselected: %d\tscore: %d\n",
-           weights_destroy[1], history_select_destroy[1], scores_destroy[1]);
-    printf("Demand destroy weight: %.3f\tselected: %d\tscore: %d\n",
-           weights_destroy[2], history_select_destroy[2], scores_destroy[2]);
+    printf("Best cost: %lf\n", bestCost);
 
-    printf("random repair weight: %.3f\tselected: %d\tscore: %d\n",
-           weights_repair[0], history_select_repair[0], scores_repair[0]);
-    printf("greedy repair weight: %.3f\tselected: %d\tscore: %d\n",
-           weights_repair[1], history_select_repair[1], scores_repair[1]);
-    printf("regret repair weight: %.3f\tselected: %d\tscore: %d\n",
-           weights_repair[2], history_select_repair[2], scores_repair[2]);
+    printf("random destroy weight: %lf\tselected: %d\tscore: %lf\n",
+           weights_destroy[0], history_select_destroy[0], history_scores_destroy[0]);
+    printf("worse destroy weight: %lf\tselected: %d\tscore: %lf\n",
+           weights_destroy[1], history_select_destroy[1], history_scores_destroy[1]);
+    printf("Demand destroy weight: %lf\tselected: %d\tscore: %lf\n",
+           weights_destroy[2], history_select_destroy[2], history_scores_destroy[2]);
+
+    printf("random repair weight: %lf\tselected: %d\tscore: %lf\n",
+           weights_repair[0], history_select_repair[0], history_scores_repair[0]);
+    printf("greedy repair weight: %lf\tselected: %d\tscore: %lf\n",
+           weights_repair[1], history_select_repair[1], history_scores_repair[1]);
+    printf("regret repair weight: %lf\tselected: %d\tscore: %lf\n",
+           weights_repair[2], history_select_repair[2], history_scores_repair[2]);
 
     return bestSolution;
 }

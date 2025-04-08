@@ -10,6 +10,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <random>
+#include <regex>
 
 using namespace std;
 
@@ -240,6 +241,8 @@ Model Model::loadFromFile(const string &filename)
     std::unordered_map<int, size_t> idToIndex;
     int depotId = -1;
 
+    double optimalV = 0;
+
     while (std::getline(file, line))
     {
         std::istringstream iss(line);
@@ -352,6 +355,17 @@ Model Model::loadFromFile(const string &filename)
                     break;
             }
         }
+        else if (key == "COMMENT")
+        {
+            // COMMENT 后面可能有多个字段，直接整行匹配
+            std::smatch match;
+            std::regex pattern(R"(Optimal value:\s*(\d+))");
+            if (std::regex_search(line, match, pattern))
+            {
+                optimalV = std::stoi(match[1].str());
+                // std::cout << "Optimal value: " << optimalValue << std::endl;
+            }
+        }
         else if (key == "EOF")
         {
             break;
@@ -401,9 +415,10 @@ Model Model::loadFromFile(const string &filename)
     Model model = Model(vehicleCount, capacity);
     model.nodes = std::move(newNodes);
     model.computeDistances();
+    model.optimalVal = optimalV;
 
-    for (auto n : model.nodes)
-        printf("%d %lf %lf\n", n.id, n.x, n.y);
+    // for (auto n : model.nodes)
+    //     printf("%d %lf %lf\n", n.id, n.x, n.y);
 
     return model;
 }

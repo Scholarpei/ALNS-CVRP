@@ -11,7 +11,7 @@ class ALNS
 private:
     Model &model;
     const int MAXFEs = 5e4;
-    int pu = 3;         // 每iter执行pu次优化
+    int pu = 1;         // 每iter执行pu次优化
     double rand_d_max;  // 随机破坏程度上限
     double rand_d_min;  // 随机破坏程度下限
     double worst_d_max; // 最坏破坏程度上限
@@ -65,7 +65,7 @@ public:
         double r2,
         double r3,
         double phi,
-        double rho = 0.9);
+        double rho);
 };
 
 #endif

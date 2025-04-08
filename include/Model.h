@@ -51,6 +51,7 @@ public:
     Logger logger;
     int fes = 0; // nums of FEs
 
+    double optimalVal;
     int vehicleCount;        // 车数量
     int capacity;            // 车容量
     std::vector<Node> nodes; // 节点(客户)
