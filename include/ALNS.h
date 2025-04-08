@@ -11,7 +11,7 @@ class ALNS
 private:
     Model &model;
     const int MAXFEs = 5e4;
-    int pu = 1;         // 每iter执行pu次优化
+    int pu = 5;         // 每iter执行pu次优化
     double rand_d_max;  // 随机破坏程度上限
     double rand_d_min;  // 随机破坏程度下限
     double worst_d_max; // 最坏破坏程度上限
@@ -22,24 +22,24 @@ private:
     double r3;          // score if the new solution does not improve the current solution, but is accepted.
     double rho;         // 算子权重衰减factor
 
-    std::vector<double> weights_destroy;     // 摧毁算子权重
-    std::vector<int> scores_destroy;         // 摧毁算子奖励得分
-    std::vector<int> history_scores_destroy; // 摧毁算子奖励得分总计
-    std::vector<int> select_destroy;         // 摧毁算子选中次数/每轮
-    std::vector<int> history_select_destroy; // 摧毁算子历史选中总数
+    std::vector<long double> weights_destroy;   // 摧毁算子权重
+    std::vector<double> scores_destroy;         // 摧毁算子奖励得分
+    std::vector<double> history_scores_destroy; // 摧毁算子奖励得分总计
+    std::vector<int> select_destroy;            // 摧毁算子选中次数/每轮
+    std::vector<int> history_select_destroy;    // 摧毁算子历史选中总数
 
-    std::vector<double> weights_repair;     // 修复算子权重
-    std::vector<int> scores_repair;         // 修复算子奖励得分
-    std::vector<int> history_scores_repair; // 修复算子奖励得分总计
-    std::vector<int> select_repair;         // 修复算子选中次数/每轮
-    std::vector<int> history_select_repair; // 摧毁算子历史选中总数
+    std::vector<long double> weights_repair;   // 修复算子权重
+    std::vector<double> scores_repair;         // 修复算子奖励得分
+    std::vector<double> history_scores_repair; // 修复算子奖励得分总计
+    std::vector<int> select_repair;            // 修复算子选中次数/每轮
+    std::vector<int> history_select_repair;    // 摧毁算子历史选中总数
 
     std::vector<int> removedNodes;
     std::mt19937 gen; // 随机数生成器
 
 public:
     ALNS(Model &model, int SEED);
-    int selectOperator(const std::vector<double> &weights); // 选择算子
+    int selectOperator(const std::vector<long double> &weights); // 选择算子
 
     // destroy strategy
     void randomRemoval(Solution &sol); // 随机移除
@@ -51,6 +51,8 @@ public:
     void randomRepair(Solution &sol, Model &model);    // 随机插入修复
     void min_cost_Repair(Solution &sol, Model &model); // 优先执行最小代价的插入操作
     void regret_Repair(Solution &sol, Model &model);   // 优先选择最优插入与次优插入代价差距大的节点进行插入操作
+
+    std::vector<int> twoOpt(Model &model, const std::vector<int> &route);
 
     void resetScore();           // 重置算子得分
     void adaptiveWeightUpdate(); // update weights of destroy and repair

@@ -59,11 +59,12 @@ public:
     std::unordered_map<std::vector<int>, double, VectorHash, VectorEqual> solutionMap;
     Model(int vehicleCount, int capacity);
 
-    void computeDistances();                      // 算距离
-    Solution initialSolution(Model &model);       // 初始解
-    Solution initialRandomSolution(Model &model); // 随机初始解
+    void computeDistances();                               // 算距离
+    Solution initialSolution(Model &model);                // 初始解
+    Solution initialRandomSolution(Model &model);          // 随机初始解
+    Solution initialBestOfGreedyAndRandom(int num_random); // 贪婪+随机结合初始解
 
-    static Model loadFromFile(const std::string &filename); // load data
+    static Model loadFromFile(const std::string &path, const std::string &filename); // load data
 
     void print() const; // 新增打印方法
 };

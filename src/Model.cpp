@@ -226,9 +226,36 @@ Solution Model::initialSolution(Model &model)
     return init_sol;
 }
 
-Model Model::loadFromFile(const string &filename)
+Solution Model::initialBestOfGreedyAndRandom(int num_random)
 {
-    std::ifstream file("../data/" + filename);
+    // 确保距离矩阵已计算
+    if (distanceMatrix.empty())
+    {
+        computeDistances();
+    }
+
+    // 用贪婪解初始化
+    Solution best_sol = initialSolution(*this);
+    double best_cost = best_sol.total_distance;
+
+    // 生成 num_random 个随机解
+    for (int i = 0; i < num_random; ++i)
+    {
+        Solution rand_sol = initialRandomSolution(*this);
+        double rand_cost = rand_sol.total_distance;
+        if (rand_cost < best_cost)
+        {
+            best_sol = rand_sol;
+            best_cost = rand_cost;
+        }
+    }
+
+    return best_sol;
+}
+
+Model Model::loadFromFile(const string &path, const string &filename)
+{
+    std::ifstream file(filename);
     if (!file.is_open())
     {
         throw std::runtime_error("无法打开文件: " + filename);

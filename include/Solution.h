@@ -15,6 +15,7 @@ public:
     Solution(std::vector<int> nodes_seq, Model &model);
     std::pair<int, std::vector<std::vector<int>>> splitRoutes(Model &model);
     double evaluateSolution(Model &model);
+    double evaluateSingleRoute(Model &model,const std::vector<int> &route); // 评估单独的路径
     void update(Model &model);
     void printSolutionINFO();
 };

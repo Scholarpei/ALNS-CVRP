@@ -212,11 +212,13 @@ void ALNS::min_cost_Repair(Solution &sol, Model &model)
     {
 
         // 复原矩阵，更新矩阵大小（每次循环中由于nodes_to_insert和nodes_seq元素个数不同，矩阵大小不同）
-        node_cost_record.resize(nodes_to_insert.size(), vector<double>(sol.nodes_seq.size(), std::numeric_limits<double>::max()));
+        node_cost_record = vector<vector<double>>(nodes_to_insert.size(), vector<double>(sol.nodes_seq.size(), std::numeric_limits<double>::max()));
 
         for (size_t node_idx = 0; node_idx < nodes_to_insert.size(); node_idx++)
         {
             Solution tempSol = sol; // 深拷贝当前解
+            if (sol.nodes_seq.size() <= 2)
+                continue; // 无法插入
             for (size_t insert_pos = 1; insert_pos < sol.nodes_seq.size(); insert_pos++)
             { // 插入位置应为 【1 - sol.nodes_seq.size() - 1】，不能插入到两侧
                 // 计算插入该节点的目标函数变化
@@ -371,8 +373,61 @@ void ALNS::regret_Repair(Solution &sol, Model &model)
     }
 }
 
+double evaluateSingleRoute(Model &model, const std::vector<int> &route)
+{
+    auto it = model.solutionMap.find(route);
+    if (it != model.solutionMap.end())
+    {
+        return it->second;
+    }
+    double route_distance = 0.0;
+    for (int n = 0; n < route.size() - 1; n++)
+    {
+        route_distance += model.distanceMatrix[route[n]][route[n + 1]]; // 将路径上相邻节点间的距离计入路径距离
+    }
+    model.solutionMap.insert({route, route_distance});
+    model.fes++;
+
+    return route_distance;
+}
+
+std::vector<int> ALNS::twoOpt(Model &model, const std::vector<int> &route)
+{
+    int n = route.size();
+    if (n < 4)
+        return route; // 至少4个点（含起点终点）
+
+    std::vector<int> best_route = route;
+    double best_cost = evaluateSingleRoute(model, route);
+
+    bool improved = true;
+
+    while (improved)
+    {
+        improved = false;
+        for (int i = 1; i < n - 2; ++i) // 不动起点
+        {
+            for (int j = i + 1; j < n - 1; ++j) // 不动终点
+            {
+                std::vector<int> new_route = best_route;
+                std::reverse(new_route.begin() + i, new_route.begin() + j + 1);
+                double new_cost = evaluateSingleRoute(model, new_route);
+
+                if (new_cost < best_cost)
+                {
+                    best_cost = new_cost;
+                    best_route = new_route;
+                    improved = true;
+                }
+            }
+        }
+    }
+
+    return best_route;
+}
+
 // 选择算子 type = destroy or repair
-int ALNS::selectOperator(const std::vector<double> &weights)
+int ALNS::selectOperator(const std::vector<long double> &weights)
 {
     std::discrete_distribution<int> dist(weights.begin(), weights.end());
     return dist(gen);
@@ -393,6 +448,7 @@ void ALNS::adaptiveWeightUpdate()
     // 更新摧毁算子权重
     for (size_t i = 0; i < weights_destroy.size(); i++)
     {
+
         if (select_destroy[i] > 0)
         {
             weights_destroy[i] = weights_destroy[i] * (1 - rho) + rho * scores_destroy[i] / select_destroy[i];
@@ -469,21 +525,32 @@ Solution ALNS::runALNS(
     this->rho = rho;
 
     // Solution bestSolution = model.initialRandomSolution(model);
-    Solution bestSolution = model.initialSolution(model);
+    // Solution bestSolution = model.initialSolution(model);
+    Solution bestSolution = model.initialBestOfGreedyAndRandom(50);
+
     // model.print();
     // bestSolution.printSolutionINFO();
 
     Solution currentSolution = bestSolution;
     double bestCost = bestSolution.total_distance;
 
-    for (int iter = 0; model.fes <= 50000; iter++)
+    // printf("%Lf\n", weights_destroy[0]);
+    int iter;
+
+    for (iter = 0; model.fes <= 50000; iter++)
     {
+        if (iter > 500)
+            if (weights_destroy[0] < 0.3)
+                // weights_destroy[0] = 1;
+                weights_destroy[0] = max(weights_destroy[1], weights_destroy[2]);
         if (iter > 2e5)
             break;
 
         Solution newSolution = currentSolution;
         double T = bestCost * 0.2;
         resetScore();
+
+        double newCost = newSolution.total_distance;
 
         for (int k = 0; k < pu; k++)
         {
@@ -509,7 +576,16 @@ Solution ALNS::runALNS(
             else if (repairIdx == 2)
                 regret_Repair(newSolution, model);
 
-            double newCost = newSolution.total_distance;
+            // // 对每条路径应用 2-opt
+            // for (auto &route : newSolution.routes)
+            // {
+            //     route = twoOpt(model, route); // 优化路径
+            // }
+
+            // // 重新评估整个解的目标值
+            newSolution.update(model);
+
+            newCost = newSolution.total_distance;
 
             // printf("newCost : %lf\n", newCost);
             // 将新解与map中的解比较，更新fes
@@ -545,7 +621,9 @@ Solution ALNS::runALNS(
             T *= phi;
 
             // 记录最优解
-            // history_best_obj.push_back(bestCost);
+            // // history_best_obj.push_back(bestCost);
+            // printf("random destroy weight: %Lf\tselected: %d\tscore: %lf\n",
+            //        weights_destroy[0], history_select_destroy[0], history_scores_destroy[0]);
         }
         adaptiveWeightUpdate();
         logger.logSolution(bestSolution, bestCost);
@@ -554,20 +632,20 @@ Solution ALNS::runALNS(
         // printf("iter %d Cost: %lf fes: %d \n", iter, bestCost, model.fes);
     }
 
-    printf("Best cost: %lf\n", bestCost);
+    printf("Best cost: %lf Use iter: %d\n", bestCost, iter);
 
-    printf("random destroy weight: %lf\tselected: %d\tscore: %lf\n",
+    printf("random destroy weight: %Lf\tselected: %d\tscore: %lf\n",
            weights_destroy[0], history_select_destroy[0], history_scores_destroy[0]);
-    printf("worse destroy weight: %lf\tselected: %d\tscore: %lf\n",
+    printf("worse destroy weight: %Lf\tselected: %d\tscore: %lf\n",
            weights_destroy[1], history_select_destroy[1], history_scores_destroy[1]);
-    printf("Demand destroy weight: %lf\tselected: %d\tscore: %lf\n",
+    printf("Demand destroy weight: %Lf\tselected: %d\tscore: %lf\n",
            weights_destroy[2], history_select_destroy[2], history_scores_destroy[2]);
 
-    printf("random repair weight: %lf\tselected: %d\tscore: %lf\n",
+    printf("random repair weight: %Lf\tselected: %d\tscore: %lf\n",
            weights_repair[0], history_select_repair[0], history_scores_repair[0]);
-    printf("greedy repair weight: %lf\tselected: %d\tscore: %lf\n",
+    printf("greedy repair weight: %Lf\tselected: %d\tscore: %lf\n",
            weights_repair[1], history_select_repair[1], history_scores_repair[1]);
-    printf("regret repair weight: %lf\tselected: %d\tscore: %lf\n",
+    printf("regret repair weight: %Lf\tselected: %d\tscore: %lf\n",
            weights_repair[2], history_select_repair[2], history_scores_repair[2]);
 
     return bestSolution;
