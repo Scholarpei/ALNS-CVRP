@@ -7,11 +7,14 @@
 #include "Model.h"
 #include <sstream>
 #include <string>
+#include <random>
 
 using namespace std;
 
-ALNS::ALNS(Model &model) : model(model), gen(random_device{}())
+ALNS::ALNS(Model &model, int SEED) : model(model), gen(random_device{}())
 {
+    std::random_device rd;
+    gen.seed(SEED);                    // 可以加上时间作为扰动
     weights_destroy = {1.0, 1.0, 1.0}; // 破坏算子的初始权重
     weights_repair = {1.0, 1.0, 1.0};  // 修复算子的初始权重
     scores_destroy = {0, 0, 0};
@@ -504,7 +507,7 @@ Solution ALNS::runALNS(
 
     Solution bestSolution = model.initialSolution(model);
     model.print();
-    bestSolution.printSolutionINFO();
+    // bestSolution.printSolutionINFO();
 
     Solution currentSolution = bestSolution;
     double bestCost = bestSolution.total_distance;

@@ -327,20 +327,52 @@ Model Model::loadFromFile(const string &filename)
         }
     }
 
-    // 验证仓库节点
+    // 找到仓库节点在 nodes 中的 index
     auto depotIt = idToIndex.find(depotId);
     if (depotIt == idToIndex.end())
     {
         throw std::runtime_error("仓库节点未找到");
     }
-    if (nodes[depotIt->second].demand != 0)
+    size_t depotIndex = depotIt->second;
+
+    // 创建新的节点数组，id范围调整为 0 ~ n-1，仓库放 index 0
+    std::vector<Node> newNodes;
+    newNodes.reserve(nodes.size());
+
+    // 先添加 depot 节点，并设置 id 为 0
+    Node depotNode = nodes[depotIndex];
+    depotNode.id = 0;
+    newNodes.push_back(depotNode);
+
+    // 添加其他节点（跳过 depotId）
+    for (const auto &node : nodes)
     {
-        throw std::runtime_error("仓库节点需求不为零");
+        if (node.id == depotId)
+            continue;
+
+        Node newNode = node;
+        if (node.id > depotId)
+        {
+            newNode.id = node.id - 1;
+        }
+        // 如果 node.id < depotId 则 id 保持不变
+        newNodes.push_back(newNode);
     }
+
+    // 重建 idToIndex
+    idToIndex.clear();
+    for (size_t i = 0; i < newNodes.size(); ++i)
+    {
+        idToIndex[newNodes[i].id] = i;
+    }
+
+    // 更新 model
     Model model = Model(vehicleCount, capacity);
-    model.nodes = nodes;
-    // model.bestSolution = std::make_shared<Solution>(model.initialSolution(model));
+    model.nodes = std::move(newNodes);
     model.computeDistances();
+
+    for (auto n : model.nodes)
+        printf("%d %lf %lf\n", n.id, n.x, n.y);
 
     return model;
 }

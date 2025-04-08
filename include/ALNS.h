@@ -39,7 +39,7 @@ private:
     std::mt19937 gen; // 随机数生成器
 
 public:
-    ALNS(Model &model);
+    ALNS(Model &model, int SEED);
     int selectOperator(const std::vector<double> &weights); // 选择算子
 
     // destroy strategy

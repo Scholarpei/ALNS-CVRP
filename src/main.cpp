@@ -17,7 +17,7 @@ void test_for_loading_model()
 int main()
 {
     Model model = Model::loadFromFile("../data/A-n32-k5.vrp");
-    ALNS alns(model);
+    ALNS alns(model, SEED);
 
     Solution bestSolution = alns.runALNS(
         model.logger,

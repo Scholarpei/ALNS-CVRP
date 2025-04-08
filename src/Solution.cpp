@@ -94,6 +94,7 @@ double Solution::evaluateSolution(Model &model)
         {
             route_distance += model.distanceMatrix[route[n]][route[n + 1]]; // 将路径上相邻节点间的距离计入路径距离
         }
+        // printf("one route: %lf ", route_distance);
         total_distance += route_distance; // 将路径距离计入解的总距离
     }
     // printf("total distance compute: %lf\n", total_distance);
