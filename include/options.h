@@ -1,5 +1,5 @@
 extern const int SEED = 42;
-extern const double RHO = 0.5;
+extern const double RHO = 0.7;
 extern const double R1 = 20;
 extern const double R2 = 12;
 extern const double R3 = 8;
@@ -8,4 +8,4 @@ extern const double RAND_D_MIN = 0.1;
 extern const double WORST_D_MIN = 0.1;
 extern const double WORST_D_MAX = 0.5;
 extern const int REGRET_N = 5; // 这个貌似没用到
-extern const double PHI = 0.97;
+extern const double PHI = 0.8;

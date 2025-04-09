@@ -32,6 +32,7 @@ void run()
             std::cout << "Running instance: " << filepath << std::endl;
 
             std::vector<double> errors;
+            std::vector<double> dis;
 
             for (int i = 0; i < NUM_RUNS; ++i)
             {
@@ -54,15 +55,16 @@ void run()
 
                 double error = ((bestSolution.total_distance - model.optimalVal) / model.optimalVal) * 100.0;
                 errors.push_back(error);
+                dis.push_back(bestSolution.total_distance);
             }
 
             // 写入到 CSV 文件
             std::string filename = entry.path().stem().string(); // 不含扩展名
             std::ofstream outFile("output/" + filename + ".csv");
-            outFile << "Run,Error\n";
+            outFile << "Run,Error,distance\n";
             for (size_t i = 0; i < errors.size(); ++i)
             {
-                outFile << (i + 1) << "," << std::fixed << std::setprecision(6) << errors[i] << "\n";
+                outFile << (i + 1) << "," << std::fixed << std::setprecision(6) << errors[i] << "," << std::fixed << std::setprecision(6) << dis[i] << "\n";
             }
             double avgError = std::accumulate(errors.begin(), errors.end(), 0.0) / errors.size();
             outFile << "Average," << std::fixed << std::setprecision(6) << avgError << "\n";
@@ -74,6 +76,11 @@ void run()
                       << std::fixed << std::setprecision(2) << avgError << " %" << std::endl;
         }
     }
+
+    std::cout << "The average error list:";
+    for (auto err : allInstanceAvgErrors)
+        std::cout << err << " ";
+    std::cout << std::endl;
 
     double totalAvgError = std::accumulate(allInstanceAvgErrors.begin(), allInstanceAvgErrors.end(), 0.0) / allInstanceAvgErrors.size();
     std::cout << "=====================================" << std::endl;

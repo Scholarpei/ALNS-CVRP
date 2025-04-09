@@ -11,7 +11,7 @@ class ALNS
 private:
     Model &model;
     const int MAXFEs = 5e4;
-    int pu = 5;         // 每iter执行pu次优化
+    int pu = 5;        // 每iter执行pu次优化
     double rand_d_max;  // 随机破坏程度上限
     double rand_d_min;  // 随机破坏程度下限
     double worst_d_max; // 最坏破坏程度上限
@@ -53,6 +53,10 @@ public:
     void regret_Repair(Solution &sol, Model &model);   // 优先选择最优插入与次优插入代价差距大的节点进行插入操作
 
     std::vector<int> twoOpt(Model &model, const std::vector<int> &route);
+    std::vector<int> threeOpt(const std::vector<int> &route);
+    std::vector<int> concat(const std::vector<int> &a, const std::vector<int> &b,
+                            const std::vector<int> &c, const std::vector<int> &d);
+    std::vector<int> reverse(const std::vector<int> &vec);
 
     void resetScore();           // 重置算子得分
     void adaptiveWeightUpdate(); // update weights of destroy and repair

@@ -426,6 +426,83 @@ std::vector<int> ALNS::twoOpt(Model &model, const std::vector<int> &route)
     return best_route;
 }
 
+// 对每一条路径应用 3-opt 局部搜索
+std::vector<int> ALNS::threeOpt(const std::vector<int> &route)
+{
+    int n = route.size();
+    if (n < 6)
+        return route; // 3-opt 至少需要6个点
+
+    std::vector<int> best_route = route;
+    double best_cost = evaluateSingleRoute(model, route);
+
+    bool improved = true;
+
+    while (improved)
+    {
+        improved = false;
+
+        for (int i = 1; i < n - 4; i++)
+        {
+            for (int j = i + 1; j < n - 2; j++)
+            {
+                for (int k = j + 1; k < n; k++)
+                {
+                    std::vector<std::vector<int>> candidates;
+
+                    // 三段路径
+                    std::vector<int> A(route.begin(), route.begin() + i);
+                    std::vector<int> B(route.begin() + i, route.begin() + j);
+                    std::vector<int> C(route.begin() + j, route.begin() + k);
+                    std::vector<int> D(route.begin() + k, route.end());
+
+                    // 生成不同排列方式
+                    candidates.push_back(concat(A, B, C, D)); // 原顺序
+                    candidates.push_back(concat(A, reverse(B), C, D));
+                    candidates.push_back(concat(A, B, reverse(C), D));
+                    candidates.push_back(concat(A, reverse(B), reverse(C), D));
+                    candidates.push_back(concat(A, C, B, D));
+                    candidates.push_back(concat(A, reverse(C), B, D));
+                    candidates.push_back(concat(A, C, reverse(B), D));
+                    candidates.push_back(concat(A, reverse(C), reverse(B), D));
+
+                    for (auto &cand : candidates)
+                    {
+                        double cand_cost = evaluateSingleRoute(model, cand);
+                        if (cand_cost < best_cost)
+                        {
+                            best_cost = cand_cost;
+                            best_route = cand;
+                            improved = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return best_route;
+}
+
+// 用于拼接多个路径段
+std::vector<int> ALNS::concat(const std::vector<int> &a, const std::vector<int> &b,
+                              const std::vector<int> &c, const std::vector<int> &d)
+{
+    std::vector<int> result = a;
+    result.insert(result.end(), b.begin(), b.end());
+    result.insert(result.end(), c.begin(), c.end());
+    result.insert(result.end(), d.begin(), d.end());
+    return result;
+}
+
+// 反转路径段
+std::vector<int> ALNS::reverse(const std::vector<int> &vec)
+{
+    std::vector<int> reversed = vec;
+    std::reverse(reversed.begin(), reversed.end());
+    return reversed;
+}
+
 // 选择算子 type = destroy or repair
 int ALNS::selectOperator(const std::vector<long double> &weights)
 {
@@ -526,7 +603,7 @@ Solution ALNS::runALNS(
 
     // Solution bestSolution = model.initialRandomSolution(model);
     // Solution bestSolution = model.initialSolution(model);
-    Solution bestSolution = model.initialBestOfGreedyAndRandom(50);
+    Solution bestSolution = model.initialBestOfGreedyAndRandom(200);
 
     // model.print();
     // bestSolution.printSolutionINFO();
@@ -580,6 +657,12 @@ Solution ALNS::runALNS(
             // for (auto &route : newSolution.routes)
             // {
             //     route = twoOpt(model, route); // 优化路径
+            // }
+
+            // 对每条路径应用 3-opt
+            // for (auto &route : newSolution.routes)
+            // {
+            //     route = threeOpt(route); // 优化每条路径
             // }
 
             // // 重新评估整个解的目标值
