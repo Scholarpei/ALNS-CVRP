@@ -22,7 +22,7 @@ void Solution::update(Model &model)
     num_vehicle = split_result.first;                                 // 更新车辆数
     routes = split_result.second;                                     // 更新化路径
     // printf("Before comp: %lf", total_distance);
-    total_distance = evaluateSolution(model); // 更新总路径长
+    total_distance = evaluateSolution(model); // 更新总路径长（如果路径已经有了的就直接返回值不加fes）
     // printf("After comp: %lf", total_distance);
 }
 

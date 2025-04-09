@@ -379,7 +379,7 @@ double evaluateSingleRoute(Model &model, const std::vector<int> &route)
     if (it != model.solutionMap.end())
     {
         return it->second;
-    }
+    } // 已经有了的直接返回不计算不加fes
     double route_distance = 0.0;
     for (int n = 0; n < route.size() - 1; n++)
     {
@@ -391,6 +391,7 @@ double evaluateSingleRoute(Model &model, const std::vector<int> &route)
     return route_distance;
 }
 
+// (not used)
 std::vector<int> ALNS::twoOpt(Model &model, const std::vector<int> &route)
 {
     int n = route.size();
@@ -426,7 +427,7 @@ std::vector<int> ALNS::twoOpt(Model &model, const std::vector<int> &route)
     return best_route;
 }
 
-// 对每一条路径应用 3-opt 局部搜索
+// 对每一条路径应用 3-opt 局部搜索 (not used)
 std::vector<int> ALNS::threeOpt(const std::vector<int> &route)
 {
     int n = route.size();
